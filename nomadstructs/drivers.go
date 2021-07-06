@@ -1,8 +1,8 @@
 package nomadstructs
 
 import (
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -17,7 +17,7 @@ func GetDriverSpec(driver string) hcldec.Spec {
 		return javaSpec
 	case "qemu":
 		return qemuSpec
-	case "rkt":
+	case "podman":
 		return rktSpec
 	case "lxc":
 		return lxcSpec
@@ -319,6 +319,10 @@ var rktSpec = hcldec.ObjectSpec{
 	},
 	"args": &hcldec.AttrSpec{
 		Name: "args",
+		Type: cty.String,
+	},
+	"network_mode": &hcldec.AttrSpec{
+		Name: "network_mode",
 		Type: cty.String,
 	},
 	"trust_prefix": &hcldec.AttrSpec{

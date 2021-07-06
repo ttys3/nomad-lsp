@@ -83,6 +83,8 @@ var GroupSpec = &hcldec.BlockMapSpec{
 			Name: "count",
 			Type: cty.Number,
 		},
+		"network":        NetworkSpec,
+		"service":        ServiceSpec,
 		"constraint":     ConstraintSpec,
 		"task":           TaskSpec,
 		"affinity":       AffinitySpec,
@@ -142,10 +144,10 @@ var TaskSpec = &hcldec.BlockMapSpec{
 			Type: cty.String,
 		},
 
-		"config": &hcldec.BlockAttrsSpec{
-			TypeName:    "config",
-			ElementType: cty.DynamicPseudoType,
-		},
+		// "config": &hcldec.BlockAttrsSpec{
+		// 	TypeName:    "config",
+		// 	ElementType: cty.DynamicPseudoType,
+		// },
 	},
 }
 
