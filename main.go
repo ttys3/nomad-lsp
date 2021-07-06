@@ -10,8 +10,8 @@ import (
 	"github.com/creachadair/jrpc2"
 	"github.com/creachadair/jrpc2/channel"
 	"github.com/creachadair/jrpc2/handler"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/juliosueiras/nomad-lsp/helper"
 	"github.com/juliosueiras/nomad-lsp/nomadstructs"
 	"github.com/sourcegraph/go-lsp"
@@ -24,12 +24,11 @@ var Server *jrpc2.Server
 var DiagsFiles = make(map[string][]lsp.Diagnostic)
 
 func Initialize(ctx context.Context, vs lsp.InitializeParams) (lsp.InitializeResult, error) {
-
 	file, err := ioutil.TempFile("", "nomad-lsp-")
 	if err != nil {
 		log.Fatal(err)
 	}
-	//defer os.Remove(file.Name())
+	// defer os.Remove(file.Name())
 	tempFile = file
 
 	return lsp.InitializeResult{
@@ -46,7 +45,7 @@ func Initialize(ctx context.Context, vs lsp.InitializeParams) (lsp.InitializeRes
 			},
 			HoverProvider: true,
 			//			DocumentSymbolProvider:    true,
-			//ReferencesProvider: true,
+			// ReferencesProvider: true,
 			//			DefinitionProvider:        true,
 			//			DocumentHighlightProvider: true,
 			//			CodeActionProvider:        true,
@@ -131,8 +130,7 @@ func TextDocumentHover(ctx context.Context, vs lsp.TextDocumentPositionParams) (
 }
 
 func TextDocumentPublishDiagnostics(server *jrpc2.Server, ctx context.Context, vs lsp.PublishDiagnosticsParams) error {
-
-	return server.Push(ctx, "textDocument/publishDiagnostics", vs)
+	return server.Notify(ctx, "textDocument/publishDiagnostics", vs)
 }
 
 func main() {

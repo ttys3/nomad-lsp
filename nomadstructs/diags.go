@@ -2,9 +2,9 @@ package nomadstructs
 
 import (
 	"fmt"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/sourcegraph/go-lsp"
 	"os"
 	"reflect"
