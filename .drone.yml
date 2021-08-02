@@ -1,0 +1,19 @@
+kind: pipeline
+name: default
+type: docker
+
+steps:
+  - name: lint
+    image: golangci/golangci-lint:v1.41.1
+    commands:
+      - echo linting ...
+      - echo current runner $DRONE_STAGE_MACHINE
+      - golangci-lint run -v
+
+  - name: test
+    image: golang:1.16.6-buster
+    commands:
+      - echo testing ...
+      - echo current runner $DRONE_STAGE_MACHINE
+      - go test -v .
+
