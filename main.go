@@ -10,9 +10,6 @@ import (
 	"github.com/creachadair/jrpc2"
 	"github.com/creachadair/jrpc2/channel"
 	"github.com/creachadair/jrpc2/handler"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/juliosueiras/nomad-lsp/helper"
 	"github.com/juliosueiras/nomad-lsp/nomadstructs"
 	"github.com/sourcegraph/go-lsp"
 )
@@ -24,7 +21,7 @@ var Server *jrpc2.Server
 var DiagsFiles = make(map[string][]lsp.Diagnostic)
 
 func Initialize(ctx context.Context, vs lsp.InitializeParams) (lsp.InitializeResult, error) {
-	file, err := ioutil.TempFile("", "nomad-lsp-")
+	file, err := ioutil.TempFile("/tmp", "nomad-lsp-")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,27 +53,27 @@ func Initialize(ctx context.Context, vs lsp.InitializeParams) (lsp.InitializeRes
 
 func TextDocumentComplete(ctx context.Context, vs lsp.CompletionParams) (lsp.CompletionList, error) {
 	var result []lsp.CompletionItem
-	fileText, _ := ioutil.ReadFile(tempFile.Name())
-
-	helper.DumpLog(tempFile.Name())
-	pos := hcl.Pos{
-		Line:   vs.Position.Line + 1,
-		Column: vs.Position.Character + 1,
-		Byte:   helper.FindOffset(string(fileText), vs.Position.Line+1, vs.Position.Character+1),
-	}
-
-	helper.DumpLog(pos)
-	hclBody, _ := nomadstructs.LoadHCLFile(tempFile.Name())
-	blocks := hclBody.(*hclsyntax.Body).BlocksAtPos(pos)
-
-	if blocks == nil {
-		result = append(result, lsp.CompletionItem{
-			Label:  "job",
-			Detail: "`job` stanza",
-		})
-	} else {
-		result = nomadstructs.GetAttributeCompletion(blocks, result)
-	}
+	// fileText, _ := ioutil.ReadFile(tempFile.Name())
+	//
+	// helper.DumpLog(tempFile.Name())
+	// pos := hcl.Pos{
+	// 	Line:   vs.Position.Line + 1,
+	// 	Column: vs.Position.Character + 1,
+	// 	Byte:   helper.FindOffset(string(fileText), vs.Position.Line+1, vs.Position.Character+1),
+	// }
+	//
+	// helper.DumpLog(pos)
+	// hclBody, _ := nomadstructs.LoadHCLFile(tempFile.Name())
+	// blocks := hclBody.(*hclsyntax.Body).BlocksAtPos(pos)
+	//
+	// if blocks == nil {
+	// 	result = append(result, lsp.CompletionItem{
+	// 		Label:  "job",
+	// 		Detail: "`job` stanza",
+	// 	})
+	// } else {
+	// 	result = nomadstructs.GetAttributeCompletion(blocks, result)
+	// }
 
 	return lsp.CompletionList{
 		IsIncomplete: false,
@@ -149,7 +146,7 @@ func main() {
 		AllowPush: true,
 	})
 
-	f, err := os.OpenFile("nomad-lsp.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile("nomad-lsp.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
