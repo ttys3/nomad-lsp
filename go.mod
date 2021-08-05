@@ -2,8 +2,6 @@ module github.com/juliosueiras/nomad-lsp
 
 go 1.16
 
-replace github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
-
 require (
 	github.com/creachadair/jrpc2 v0.18.0
 	github.com/davecgh/go-spew v1.1.1
