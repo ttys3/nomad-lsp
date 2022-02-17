@@ -146,7 +146,7 @@ func main() {
 		AllowPush: true,
 	})
 
-	f, err := os.OpenFile("nomad-lsp.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
+	f, err := os.OpenFile("/tmp/nomad-lsp.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
@@ -155,9 +155,11 @@ func main() {
 	log.SetOutput(f)
 
 	Server.Start(channel.Header("")(os.Stdin, os.Stdout))
-	log.Print("Server started")
+	log.Print("server started")
 
 	if err := Server.Wait(); err != nil {
-		log.Printf("Server exited: %v", err)
+		log.Printf("server exited with error: %v", err)
+	} else {
+		log.Print("server exited")
 	}
 }

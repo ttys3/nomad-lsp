@@ -1,2 +1,2 @@
 default:
-	go build && cp nomad-lsp ~/.bin
+	go build && cp nomad-lsp ~/go/bin/
