@@ -161,4 +161,4 @@ override.tf.json
 # End of https://www.gitignore.io/api/terraform
 dist
 /nomad-lsp
-/nomad-lsp.amdv3
+/nomad-lsp.*
