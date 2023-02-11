@@ -5,13 +5,19 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/ci"
+	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/jobspec"
+	"github.com/shoenig/test/must"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEquivalentToHCL1(t *testing.T) {
+	ci.Parallel(t)
+
 	hclSpecDir := "../jobspec/test-fixtures/"
 	fis, err := ioutil.ReadDir(hclSpecDir)
 	require.NoError(t, err)
@@ -40,6 +46,8 @@ func TestEquivalentToHCL1(t *testing.T) {
 }
 
 func TestEquivalentToHCL1_ComplexConfig(t *testing.T) {
+	ci.Parallel(t)
+
 	name := "./test-fixtures/config-compatibility.hcl"
 	f, err := os.Open(name)
 	require.NoError(t, err)
@@ -56,7 +64,24 @@ func TestEquivalentToHCL1_ComplexConfig(t *testing.T) {
 	require.Equal(t, job1, job2)
 }
 
+func TestParse_ConnectJob(t *testing.T) {
+	ci.Parallel(t)
+
+	name := "./test-fixtures/connect-example.hcl"
+	f, err := os.Open(name)
+	must.NoError(t, err)
+	t.Cleanup(func() { _ = f.Close() })
+
+	job2, err := Parse(name, f)
+	must.NoError(t, err)
+
+	timeout := job2.TaskGroups[0].Services[0].Connect.SidecarService.Proxy.Upstreams[0].Config["connect_timeout_ms"]
+	must.Eq(t, 9999, timeout)
+}
+
 func TestParse_VarsAndFunctions(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 variables {
   region_var = "default"
@@ -81,6 +106,8 @@ job "example" {
 }
 
 func TestParse_VariablesDefaultsAndSet(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 variables {
   region_var = "default_region"
@@ -178,6 +205,8 @@ job "example" {
 
 // TestParse_UnknownVariables asserts that unknown variables are left intact for further processing
 func TestParse_UnknownVariables(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 variables {
   region_var = "default"
@@ -211,6 +240,8 @@ job "example" {
 // TestParse_UnsetVariables asserts that variables that have neither types nor
 // values return early instead of panicking.
 func TestParse_UnsetVariables(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 variable "region_var" {}
 job "example" {
@@ -231,6 +262,8 @@ job "example" {
 }
 
 func TestParse_Locals(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 variables {
   region_var = "default_region"
@@ -278,6 +311,8 @@ job "example" {
 }
 
 func TestParse_FileOperators(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 job "example" {
   region      = file("parse_test.go")
@@ -313,6 +348,8 @@ job "example" {
 }
 
 func TestParseDynamic(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 job "example" {
 
@@ -373,7 +410,54 @@ job "example" {
 	require.Equal(t, "3", out.TaskGroups[2].Tasks[0].Meta["VERSION"])
 }
 
+func TestParse_InvalidHCL(t *testing.T) {
+	ci.Parallel(t)
+
+	t.Run("invalid body", func(t *testing.T) {
+		hcl := `invalid{hcl`
+
+		_, err := ParseWithConfig(&ParseConfig{
+			Path:    "input.hcl",
+			Body:    []byte(hcl),
+			ArgVars: []string{},
+			AllowFS: true,
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("invalid vars file", func(t *testing.T) {
+		tmp, err := ioutil.TempFile("", "nomad-jobspec2-")
+		require.NoError(t, err)
+		defer os.Remove(tmp.Name())
+
+		vars := `invalid{hcl`
+		_, err = tmp.Write([]byte(vars))
+		require.NoError(t, err)
+
+		hcl := `
+variables {
+  region_var = "default"
+}
+job "example" {
+  datacenters = [for s in ["dc1", "dc2"] : upper(s)]
+  region      = var.region_var
+}
+`
+
+		_, err = ParseWithConfig(&ParseConfig{
+			Path:     "input.hcl",
+			Body:     []byte(hcl),
+			VarFiles: []string{tmp.Name()},
+			ArgVars:  []string{},
+			AllowFS:  true,
+		})
+		require.Error(t, err)
+	})
+}
+
 func TestParse_InvalidScalingSyntax(t *testing.T) {
+	ci.Parallel(t)
+
 	cases := []struct {
 		name        string
 		expectedErr string
@@ -538,6 +622,8 @@ job "example" {
 }
 
 func TestParseJob_JobWithFunctionsAndLookups(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 variable "env" {
   description = "target environment for the job"
@@ -575,13 +661,13 @@ job "job-webserver" {
 		{
 			"prod",
 			&api.Job{
-				ID:          stringToPtr("job-webserver"),
-				Name:        stringToPtr("job-webserver"),
+				ID:          pointer.Of("job-webserver"),
+				Name:        pointer.Of("job-webserver"),
 				Datacenters: []string{"prod-dc1", "prod-dc2"},
 				TaskGroups: []*api.TaskGroup{
 					{
-						Name:  stringToPtr("group-webserver"),
-						Count: intToPtr(20),
+						Name:  pointer.Of("group-webserver"),
+						Count: pointer.Of(20),
 
 						Tasks: []*api.Task{
 							{
@@ -601,13 +687,13 @@ job "job-webserver" {
 		{
 			"staging",
 			&api.Job{
-				ID:          stringToPtr("job-webserver"),
-				Name:        stringToPtr("job-webserver"),
+				ID:          pointer.Of("job-webserver"),
+				Name:        pointer.Of("job-webserver"),
 				Datacenters: []string{"dc1"},
 				TaskGroups: []*api.TaskGroup{
 					{
-						Name:  stringToPtr("group-webserver"),
-						Count: intToPtr(3),
+						Name:  pointer.Of("group-webserver"),
+						Count: pointer.Of(3),
 
 						Tasks: []*api.Task{
 							{
@@ -627,13 +713,13 @@ job "job-webserver" {
 		{
 			"unknown",
 			&api.Job{
-				ID:          stringToPtr("job-webserver"),
-				Name:        stringToPtr("job-webserver"),
+				ID:          pointer.Of("job-webserver"),
+				Name:        pointer.Of("job-webserver"),
 				Datacenters: []string{},
 				TaskGroups: []*api.TaskGroup{
 					{
-						Name:  stringToPtr("group-webserver"),
-						Count: intToPtr(0),
+						Name:  pointer.Of("group-webserver"),
+						Count: pointer.Of(0),
 
 						Tasks: []*api.Task{
 							{
@@ -667,6 +753,8 @@ job "job-webserver" {
 }
 
 func TestParse_TaskEnvs(t *testing.T) {
+	ci.Parallel(t)
+
 	cases := []struct {
 		name       string
 		envSnippet string
@@ -740,6 +828,8 @@ job "example" {
 }
 
 func TestParse_TaskEnvs_Multiple(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := `
 job "example" {
   group "group" {
@@ -764,6 +854,8 @@ job "example" {
 }
 
 func Test_TaskEnvs_Invalid(t *testing.T) {
+	ci.Parallel(t)
+
 	cases := []struct {
 		name        string
 		envSnippet  string
@@ -812,6 +904,8 @@ job "example" {
 }
 
 func TestParse_Meta_Alternatives(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := ` job "example" {
   group "group" {
     task "task" {
@@ -860,6 +954,7 @@ func TestParse_Meta_Alternatives(t *testing.T) {
 // TestParse_UndefinedVariables asserts that values with undefined variables are left
 // intact in the job representation
 func TestParse_UndefinedVariables(t *testing.T) {
+	ci.Parallel(t)
 
 	cases := []string{
 		"plain",
@@ -903,6 +998,8 @@ func TestParse_UndefinedVariables(t *testing.T) {
 }
 
 func TestParseServiceCheck(t *testing.T) {
+	ci.Parallel(t)
+
 	hcl := ` job "group_service_check_script" {
   group "group" {
     service {
@@ -925,11 +1022,11 @@ func TestParseServiceCheck(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedJob := &api.Job{
-		ID:   stringToPtr("group_service_check_script"),
-		Name: stringToPtr("group_service_check_script"),
+		ID:   pointer.Of("group_service_check_script"),
+		Name: pointer.Of("group_service_check_script"),
 		TaskGroups: []*api.TaskGroup{
 			{
-				Name: stringToPtr("group"),
+				Name: pointer.Of("group"),
 				Services: []*api.Service{
 					{
 						Name:      "foo-service",
@@ -949,4 +1046,41 @@ func TestParseServiceCheck(t *testing.T) {
 	}
 
 	require.Equal(t, expectedJob, parsedJob)
+}
+
+func TestWaitConfig(t *testing.T) {
+	ci.Parallel(t)
+
+	hclBytes, err := os.ReadFile("test-fixtures/template-wait-config.hcl")
+	require.NoError(t, err)
+
+	job, err := ParseWithConfig(&ParseConfig{
+		Path:    "test-fixtures/template-wait-config.hcl",
+		Body:    hclBytes,
+		AllowFS: false,
+	})
+
+	require.NoError(t, err)
+
+	tmpl := job.TaskGroups[0].Tasks[0].Templates[0]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Wait)
+	require.Equal(t, 5*time.Second, *tmpl.Wait.Min)
+	require.Equal(t, 60*time.Second, *tmpl.Wait.Max)
+}
+
+func TestErrMissingKey(t *testing.T) {
+	ci.Parallel(t)
+	hclBytes, err := os.ReadFile("test-fixtures/template-err-missing-key.hcl")
+	require.NoError(t, err)
+	job, err := ParseWithConfig(&ParseConfig{
+		Path:    "test-fixtures/template-err-missing-key.hcl",
+		Body:    hclBytes,
+		AllowFS: false,
+	})
+	require.NoError(t, err)
+	tmpl := job.TaskGroups[0].Tasks[0].Templates[0]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.ErrMissingKey)
+	require.True(t, *tmpl.ErrMissingKey)
 }

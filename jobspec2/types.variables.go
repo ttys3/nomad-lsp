@@ -78,7 +78,6 @@ func (v *Variable) GoString() string {
 
 // validateValue ensures that all of the configured custom validations for a
 // variable value are passing.
-//
 func (v *Variable) validateValue(val VariableAssignment) (diags hcl.Diagnostics) {
 	if len(v.Validations) == 0 {
 		return nil
@@ -95,6 +94,17 @@ func (v *Variable) validateValue(val VariableAssignment) (diags hcl.Diagnostics)
 
 	for _, validation := range v.Validations {
 		const errInvalidCondition = "Invalid variable validation result"
+
+		if validation.Condition == nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid variable validation specification",
+				Detail:      "validation requires a condition.",
+				Subject:     validation.DeclRange.Ptr(),
+				EvalContext: hclCtx,
+			})
+			continue
+		}
 
 		result, moreDiags := validation.Condition.Value(hclCtx)
 		diags = append(diags, moreDiags...)
@@ -536,6 +546,12 @@ func (c *jobConfig) collectInputVariableValues(env []string, files []*hcl.File, 
 		})
 	}
 
+	// Define the severity of variable passed that are undefined.
+	undefSev := hcl.DiagWarning
+	if c.ParseConfig.Strict {
+		undefSev = hcl.DiagError
+	}
+
 	// files will contain files found in the folder then files passed as
 	// arguments.
 	for _, file := range files {
@@ -583,12 +599,8 @@ func (c *jobConfig) collectInputVariableValues(env []string, files []*hcl.File, 
 		for name, attr := range attrs {
 			variable, found := variables[name]
 			if !found {
-				sev := hcl.DiagWarning
-				if c.ParseConfig.Strict {
-					sev = hcl.DiagError
-				}
 				diags = append(diags, &hcl.Diagnostic{
-					Severity: sev,
+					Severity: undefSev,
 					Summary:  "Undefined variable",
 					Detail: fmt.Sprintf("A %q variable was set but was "+
 						"not found in known variables. To declare "+
@@ -630,7 +642,7 @@ func (c *jobConfig) collectInputVariableValues(env []string, files []*hcl.File, 
 		variable, found := variables[name]
 		if !found {
 			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
+				Severity: undefSev,
 				Summary:  "Undefined -var variable",
 				Detail: fmt.Sprintf("A %q variable was passed in the command "+
 					"line but was not found in known variables. "+

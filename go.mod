@@ -1,6 +1,12 @@
 module github.com/juliosueiras/nomad-lsp
 
-go 1.18
+go 1.19
+
+// Pinned dependencies are noted in github.com/hashicorp/nomad/issues/11826
+// https://github.com/hashicorp/nomad/blob/29893023f7da52d76479399825480f8536eb337b/go.mod#L9
+replace github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
+
+replace github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.9.2-0.20220525143345-ab3cae0737bc
 
 require (
 	github.com/creachadair/jrpc2 v0.43.0
@@ -10,6 +16,7 @@ require (
 	github.com/hashicorp/nomad v1.4.3
 	github.com/hashicorp/nomad/api v0.0.0-20230210211211-29893023f7da
 	github.com/mitchellh/reflectwalk v1.0.2
+	github.com/shoenig/test v0.6.1
 	github.com/sourcegraph/go-lsp v0.0.0-20200429204803-219e11d77f5d
 	github.com/stretchr/testify v1.8.1
 	github.com/zclconf/go-cty v1.12.1
