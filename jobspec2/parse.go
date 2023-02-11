@@ -2,21 +2,18 @@ package jobspec2
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
-	"github.com/hashicorp/nomad/api"
 )
 
-func Parse(path string, r io.Reader) (*api.Job, error) {
+func Parse(path string, r io.Reader) (hcl.Diagnostics, error) {
 	if path == "" {
 		if f, ok := r.(*os.File); ok {
 			path = f.Name()
@@ -37,17 +34,11 @@ func Parse(path string, r io.Reader) (*api.Job, error) {
 	})
 }
 
-func ParseWithConfig(args *ParseConfig) (*api.Job, error) {
+func ParseWithConfig(args *ParseConfig) (hcl.Diagnostics, error) {
 	args.normalize()
 
 	c := newJobConfig(args)
-	err := decode(c)
-	if err != nil {
-		return nil, err
-	}
-
-	normalizeJob(c)
-	return c.Job, nil
+	return Decode(c)
 }
 
 type ParseConfig struct {
@@ -81,7 +72,7 @@ func (c *ParseConfig) normalize() {
 	}
 }
 
-func decode(c *jobConfig) error {
+func Decode(c *jobConfig) (hcl.Diagnostics, error) {
 	config := c.ParseConfig
 
 	file, diags := parseHCLOrJSON(config.Body, config.Path)
@@ -89,41 +80,36 @@ func decode(c *jobConfig) error {
 	for _, varFile := range config.VarFiles {
 		parsedVarFile, ds := parseFile(varFile)
 		if parsedVarFile == nil || ds.HasErrors() {
-			return fmt.Errorf("unable to parse var file: %v", ds.Error())
+			return nil, fmt.Errorf("unable to parse var file: %v", ds.Error())
 		}
 
 		config.parsedVarFiles = append(config.parsedVarFiles, parsedVarFile)
 		diags = append(diags, ds...)
 	}
 
-	// Return early if the input job or variable files are not valid.
-	// Decoding and evaluating invalid files may result in unexpected results.
-	if diags.HasErrors() {
-		return diags
-	}
-
 	diags = append(diags, c.decodeBody(file.Body)...)
 
-	if diags.HasErrors() {
-		var str strings.Builder
-		for i, diag := range diags {
-			if i != 0 {
-				str.WriteByte('\n')
-			}
-			str.WriteString(diag.Error())
-		}
-		return errors.New(str.String())
-	}
+	// if diags.HasErrors() {
+	// 	var str strings.Builder
+	// 	for i, diag := range diags {
+	// 		if i != 0 {
+	// 			str.WriteByte('\n')
+	// 		}
+	// 		str.WriteString(diag.Error())
+	// 	}
+	// 	return nil, errors.New(str.String())
+	// }
 
 	diags = append(diags, decodeMapInterfaceType(&c.Job, c.EvalContext())...)
 	diags = append(diags, decodeMapInterfaceType(&c.Tasks, c.EvalContext())...)
 	diags = append(diags, decodeMapInterfaceType(&c.Vault, c.EvalContext())...)
 
-	if diags.HasErrors() {
-		return diags
-	}
-
-	return nil
+	return diags, nil
+	// if diags.HasErrors() {
+	// 	return diags, nil
+	// }
+	//
+	// return nil, nil
 }
 
 func parseFile(path string) (*hcl.File, hcl.Diagnostics) {
