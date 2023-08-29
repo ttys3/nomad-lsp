@@ -13,7 +13,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/go-cty-funcs v0.0.0-20230112231712-1aba97313821
 	github.com/hashicorp/hcl/v2 v2.16.0
-	github.com/hashicorp/nomad v1.4.3
+	github.com/hashicorp/nomad v1.4.6
 	github.com/hashicorp/nomad/api v0.0.0-20230210211211-29893023f7da
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/shoenig/test v0.6.1
@@ -40,10 +40,12 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/exp v0.0.0-20230210204819-062eb4c674ab // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
